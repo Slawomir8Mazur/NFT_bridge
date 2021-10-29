@@ -16,3 +16,7 @@ docker run -it --entrypoint /bin/bash vyperlang/vyper
 ```
 
 ## Build Tezos part
+
+
+# Sources
+https://github.com/vyperlang/vyper/blob/master/examples/wallet/wallet.vy
