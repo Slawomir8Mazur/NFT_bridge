@@ -4,19 +4,26 @@
 
 
 owner: public(address)
-state: public(bool)
+signer: public(address)
+switch: public(bool)
 
 @external
 def __init__():
-    self.state = True
+    self.switch = True
     self.owner = msg.sender
+    self.signer = msg.sender
 
-@external
-def swap(operationHash: bytes32, signature: Bytes[65]):
-    self.owner = ecrecover(
+
+@internal
+def _get_signer(operationHash: bytes32, signature: Bytes[65]) -> address:
+    return ecrecover(
         operationHash,
         convert(slice(signature, 64, 1), uint256),
         convert(slice(signature, 0, 32), uint256),
         convert(slice(signature, 32, 32), uint256)
     )
-    self.state = not self.state
+
+@external
+def change_signer(operationHash: bytes32, signature: Bytes[65]):
+    self.signer = self._get_signer(operationHash, signature)
+    self.switch = not self.switch
