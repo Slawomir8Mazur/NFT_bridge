@@ -1,14 +1,16 @@
-import ed25519
-import os
+# from web3.auto import w3
+import web3
+from eth_utils import keccak
 
-sk,vk = ed25519.create_keypair(entropy=os.urandom)
-print(sk, vk)
+private_key = "0x78d0030cb696f47a55b378505b8c3054b3f064054a2d0c7531771f71d008b2ca"
 
-message = bytes.fromhex('D0a7efE60Fd0850FDc2A63795a4a55460e732f1c')
-print(message)
+account = web3.eth.Account.privateKeyToAccount(private_key)
+address = account.address
+message = keccak(bytes(address, 'utf-8'))
 
-signature = sk.sign(message)
-# signature = sk.sign(message, prefix=, encoding=)
+signature = account.sign_message(address)
 
-print(message.hex())
-print(signature.hex())
+print(f"""
+    message={hex(int(message, 16))}
+    signature={hex(int(signature, 16))}
+""")
