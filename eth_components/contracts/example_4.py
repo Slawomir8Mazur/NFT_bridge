@@ -2,11 +2,11 @@
 # @author Takayuki Jimba (@yudetamago)
 # https://github.com/ethereum/EIPs/blob/master/EIPS/eip-20.md
 
-signers: address[5]
-required_signatures: uint256
-message: bytes32
+signers: public(address[5])
+required_signatures: public(uint256)
+message: public(bytes32)
 
-_tmp_addresses: address[5] # TODO remove after debugging
+_tmp_addresses: public(address[5]) # TODO remove after debugging
 
 @external
 def __init__():
@@ -43,6 +43,8 @@ def change_signer(message: bytes32, signatures: Bytes[65*5]):
             break
         signature: Bytes[65] = slice(signatures, 65*i, 65)
         tmp_addresses[i] = self._get_signer(message, signature)
+
+    self._tmp_addresses = tmp_addresses # TODO remove after debugging
     
     # Count signatures from allowed signers
     confirmation_counter: uint256 = 0
@@ -52,5 +54,3 @@ def change_signer(message: bytes32, signatures: Bytes[65*5]):
     assert confirmation_counter >= self.required_signatures, "You provided to few valid signatures"
 
     self.message = message
-
-    self._tmp_addresses = tmp_addresses # TODO remove after debugging
