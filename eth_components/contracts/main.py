@@ -139,3 +139,17 @@ def cancel_order(nft_contract: address, token_id: uint256):
 @external
 def get_order_hash(original_owner: address, nft_contract: address, token_id: uint256) -> bytes32:
     return self._create_order_hash(original_owner, nft_contract, token_id)
+
+@view
+@external
+def _get_order_sign_hash(original_owner: address, nft_contract: address, token_id: uint256, validate: bool) -> bytes32:
+    order_hash: bytes32 = self._create_order_hash(original_owner, nft_contract, token_id)
+
+    add_time: uint256 = self.freezer[order_hash]
+
+    if validate:
+        assert add_time != empty(uint256), "There was no such an order"
+        assert add_time + self.freezer_period < block.timestamp, "Migration wasn't establised in dued time"
+
+    return self._create_order_sign_hash(order_hash, add_time)
+    
