@@ -1,9 +1,12 @@
 from vyper.interfaces import ERC721
 
-struct NftFrozen:
-    token_address: address
-    token_id: uint256
-    original_owner: address
+# TODO protection from replay atack
+
+event Order:
+    requester: indexed(address)
+    nft_address: indexed(address)
+    nft_id: indexed(uint256)
+    target: Bytes[72]
 
 # Setup signatures
 signers: public(address[5])
@@ -15,8 +18,8 @@ freezer: public(HashMap[bytes32, uint256])
     # [keccak256(concat(
     #     convert(msg.sender, bytes32),
     #     convert(nft_contract, bytes32),
-    #     convert(token_id, bytes32)
-    # )), frozen_until=timestamp]
+    #     convert(token_id, bytes32))), 
+    # frozen_until=timestamp]
 
 
 @external
@@ -30,7 +33,6 @@ def __init__():
     ]
     self.required_signatures = 3
     self.freezer_period = 1000
-    # self.para = Pair({x: 122, y:44})
 
 
 @internal
@@ -63,7 +65,7 @@ def _get_valid_signers_count(message: bytes32, signatures: Bytes[65*5]) -> uint2
     return confirmation_counter
 
 @external
-def safe_order_migration(nft_contract: address, token_id: uint256):
+def order_migration(nft_contract: address, token_id: uint256, target_account: Bytes[72]):
     """
         User requests his NFT token on ethereum to be megrated to Tezos, 
         order is recorded in the freezer, it will either be: 
@@ -78,8 +80,7 @@ def safe_order_migration(nft_contract: address, token_id: uint256):
         convert(nft_contract, bytes32),
         convert(token_id, bytes32)
     ))] = block.timestamp + self.freezer_period
-    # self.para = Pair({x: 122, y:44})
-    # ERC721(nft_address).transferFrom(msg.sender, self, token_id)
+    log Order(msg.sender, nft_contract, token_id, target_account)
 
 
 @external
