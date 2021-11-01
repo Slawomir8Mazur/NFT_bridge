@@ -14,11 +14,8 @@ required_signatures: public(uint256)
 # Setup freezing 
 freezer_period: public(uint256) # timedelta
 freezer: public(HashMap[bytes32, uint256])
-    # [keccak256(concat(
-    #     convert(msg.sender, bytes32),
-    #     convert(nft_contract, bytes32),
-    #     convert(token_id, bytes32))), 
-    # add_time=timestamp]
+# >>> 0xedc905c6150a64657f27b89836c75ff42924c311ba766e04f12b9169a586ae1c
+# 1635801289
 
 
 @external
@@ -31,7 +28,7 @@ def __init__():
         0x0DE1F8Aa263E642ec8932FE15076f829295fA464
     ]
     self.required_signatures = 3
-    self.freezer_period = 1000
+    self.freezer_period = 3600
 
 
 @view
@@ -138,11 +135,15 @@ def cancel_order(nft_contract: address, token_id: uint256):
 @view
 @external
 def get_order_hash(original_owner: address, nft_contract: address, token_id: uint256) -> bytes32:
+    """
+    >>> original_owner, nft_contract, token_id ='0x291eea42f2806d7b5f14c5e71f3a97b0a5bcf62e', '0x90df8a8ff585d1eb4b9a13789bcc5fd8c7e1b7b2', 21
+    0xedc905c6150a64657f27b89836c75ff42924c311ba766e04f12b9169a586ae1c
+    """
     return self._create_order_hash(original_owner, nft_contract, token_id)
 
 @view
 @external
-def _get_order_sign_hash(original_owner: address, nft_contract: address, token_id: uint256, validate: bool) -> bytes32:
+def get_order_sign_hash(original_owner: address, nft_contract: address, token_id: uint256, validate: bool) -> bytes32:
     order_hash: bytes32 = self._create_order_hash(original_owner, nft_contract, token_id)
 
     add_time: uint256 = self.freezer[order_hash]
