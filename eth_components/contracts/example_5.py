@@ -1,3 +1,7 @@
+from vyper.interfaces import ERC721
+
+# implements: ERC721
+
 signers: public(address[5])
 required_signatures: public(uint256)
 message: public(bytes32)
@@ -50,3 +54,11 @@ def change_signer(message: bytes32, signatures: Bytes[65*5]):
     valid_signatures: uint256 = self._get_valid_signers_count(message, signatures)
     assert valid_signatures >= self.required_signatures, "You provided to few valid signatures"
     self.message = message
+
+@external
+def pass_over_safe_transfer_from(nft_address: address, token_id: uint256):
+    ERC721(nft_address).transferFrom(msg.sender, self, token_id)
+
+@external
+def pass_over_set_approval_for_all(nft_address: address, approve: bool):
+    ERC721(nft_address).setApprovalForAll(self, approve)
