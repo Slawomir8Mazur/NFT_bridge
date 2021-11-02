@@ -127,7 +127,7 @@ def execute_migration(original_owner: address, nft_contract: address, token_id: 
 
     add_time: uint256 = self.freezer[order_hash]
     assert add_time != empty(uint256), "There was no such an order"
-    assert add_time + self.freezer_period < block.timestamp, "Migration wasn't establised in dued time"
+    assert add_time + self.freezer_period > block.timestamp, "Migration wasn't establised in dued time"
 
     order_sign_hash: bytes32 = self._create_order_sign_hash(order_hash, add_time)
     assert self.required_signatures <= self._get_valid_signers_count(order_sign_hash, signatures), "Too few valid signatures"
