@@ -47,7 +47,7 @@ def _get_signer(message: bytes32, signature: Bytes[65]) -> address:
 
 @view
 @internal
-def _get_valid_signers_count(message: bytes32, signatures: Bytes[65*5]) -> uint256:
+def _get_valid_signers_count(message: bytes32, signatures: Bytes[325]) -> uint256:
     # Verify signatures, deduplicate them
     received_signatures: uint256 = len(signatures)/65
     tmp_addresses: address[5] = empty(address[5])
@@ -117,7 +117,7 @@ def cancel_order(nft_contract: address, token_id: uint256):
 ######################### VALIDATORS METHODS ##################################
 
 @external
-def execute_migration(original_owner: address, nft_contract: address, token_id: uint256, signatures: Bytes[65*5]):
+def execute_migration(original_owner: address, nft_contract: address, token_id: uint256, signatures: Bytes[325]):
     """
     Token is removed from the freezer, validators confirm with their signatures that they 
     minted that token on other blockchain, migration can be undone by the seperate procedure 
@@ -140,7 +140,7 @@ def execute_migration(original_owner: address, nft_contract: address, token_id: 
 
 
 @external
-def unmigrate_token(target_owner: address, nft_contract: address, token_id: uint256, signatures: Bytes[65*5]):
+def unmigrate_token(target_owner: address, nft_contract: address, token_id: uint256, signatures: Bytes[325]):
     """
     User initiated unmigrating procedure on other blockchain, if it was accepted by validators there, 
     then here validators should provide their signatures as confirmation - token will be transfered to requested user
@@ -178,7 +178,7 @@ def get_order_sign_hash(original_owner: address, nft_contract: address, token_id
 
     if validate:
         assert add_time != empty(uint256), "There was no such an order"
-        assert add_time + self.freezer_period < block.timestamp, "Migration wasn't establised in dued time"
+        assert add_time + self.freezer_period > block.timestamp, "Migration wasn't establised in dued time"
 
     return self._create_order_sign_hash(order_hash, add_time)
 
