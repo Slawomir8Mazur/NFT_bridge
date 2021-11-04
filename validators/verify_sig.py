@@ -5,4 +5,4 @@ signature = bytes.fromhex("adcf97303281a870e48d6e1088ae9a2ead8abd18380452e570d73
 
 recovered_hash = web3.eth.Account.recoverHash(message, signature=signature)
 
-print(recovered_hash)
+print(type(recovered_hash))
