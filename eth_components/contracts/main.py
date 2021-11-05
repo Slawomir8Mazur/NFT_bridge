@@ -1,11 +1,15 @@
 from vyper.interfaces import ERC721
 
 event Order:
-    requester: address
-    nft_address: address
-    nft_id: uint256
-    target: Bytes[72]
-    hash: bytes32
+    requester_addres: indexed(address)
+    target_address: indexed(Bytes[72])
+    token_address: address
+    token_id: uint256
+
+event Migration:
+    migration: bool # True for migration, False for unmigration
+    message: indexed(bytes32)
+    signatures: Bytes[325]
 
 # Setup signatures
 signers: public(address[5])
@@ -98,7 +102,7 @@ def order_migration(nft_contract: address, token_id: uint256, target_account: By
     """
     order_hash: bytes32 = self._create_order_hash(msg.sender, nft_contract, token_id)
     self.freezer[order_hash] = block.timestamp
-    log Order(msg.sender, nft_contract, token_id, target_account, order_hash)
+    log Order(msg.sender, target_account, nft_contract, token_id)
 
 @external
 def cancel_order(nft_contract: address, token_id: uint256):
@@ -138,6 +142,8 @@ def execute_migration(original_owner: address, nft_contract: address, token_id: 
     # Transfer NFT to this contract
     ERC721(nft_contract).transferFrom(original_owner, self, token_id)
 
+    log Migration(True, order_sign_hash, signatures)
+
 
 @external
 def unmigrate_token(target_owner: address, nft_contract: address, token_id: uint256, signatures: Bytes[325]):
@@ -151,6 +157,8 @@ def unmigrate_token(target_owner: address, nft_contract: address, token_id: uint
 
     self._unmigrate_counter += 1
     ERC721(nft_contract).transferFrom(self, target_owner, token_id)
+
+    log Migration(False, order_sign_hash, signatures)
 
 ############################ VIEWS ############################
 
