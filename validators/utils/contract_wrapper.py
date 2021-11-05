@@ -1,11 +1,13 @@
 import os
+from typing import Callable
 from web3 import Web3
 from vyper import compile_code
+import asyncio
 
 class ContractWrapper:
     w3 = None
 
-    def __init__(self, contract_path: str, contract_address: str):
+    def __init__(self, contract_address: str, contract_path: str):
         self._get_w3()
 
         self.address = contract_address
@@ -29,3 +31,52 @@ class ContractWrapper:
     def read_contract_code(self, path_to_file: str, *args):
         with open(path_to_file, "r") as f:
             return compile_code(f.read(), *args)
+
+class EthBridge(ContractWrapper):
+    def __init__(self, 
+        contract_address: str = "0xe8750c0d2ead47451a11a19e15c1c12f195080ec", 
+        contract_path: str = os.path.join('eth_components', 'contracts', 'main.py')
+    ):
+        super().__init__(contract_address, contract_path)
+        self.pool_interval = 5
+
+    def get_order_sign_hash(self, original_owner_address: bytes, nft_contract_address: str, token_id: int):
+        return self.contract.functions.get_order_sign_hash(
+            Web3.toChecksumAddress(original_owner_address),
+            Web3.toChecksumAddress(nft_contract_address),
+            token_id, 
+            True
+        ).call()
+
+    def send_signed_order(self):
+        raise NotImplementedError
+
+    def pool_logs(self, subscribtion, *args):
+        """
+        >>> eth_bridge.pool_logs(eth_bridge.subscribe_to_orders, print)
+        """
+        loop = asyncio.get_event_loop()
+        try:
+            loop.run_until_complete(asyncio.gather(
+                subscribtion(*args)
+            ))
+        finally:
+            loop.close()
+
+    async def subscribe_to_orders(self, *args):
+        while True:
+            for event in self.contract.events.Order.getLogs():
+                self.get_order_metadata(event, *args)
+            await asyncio.sleep(self.pool_interval)
+
+    def get_order_metadata(self, order_event, *args: list[Callable]):
+        order = {
+            "metadata":{
+                "token_id": order_event.args.token_id,
+                "token_address": order_event.args.token_address,
+                "requester_address": order_event.args.requester_address,
+                "target_address": order_event.args.target_address.decode('utf-8')
+            }
+        }
+        # broadcast orders to passed functions
+        [f(order) for f in args]
