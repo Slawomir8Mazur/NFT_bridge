@@ -2,7 +2,7 @@ from vyper.interfaces import ERC721
 
 event Order:
     requester_address: indexed(address)
-    target_address: indexed(Bytes[72])
+    target_address: Bytes[36]
     token_address: address
     token_id: uint256
 
@@ -89,7 +89,7 @@ def _create_order_sign_hash(order_hash: bytes32, nonce: uint256) -> bytes32:
 ######################### USER METHODS ##################################
 
 @external
-def order_migration(nft_contract: address, token_id: uint256, target_account: Bytes[72]):
+def order_migration(nft_contract: address, token_id: uint256, target_account: Bytes[36]):
     """
     User requests his NFT token on ethereum to be megrated to Tezos, 
     order is recorded in the freezer, it will either be: 
