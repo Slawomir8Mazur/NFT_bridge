@@ -1,7 +1,7 @@
 from vyper.interfaces import ERC721
 
 event Order:
-    requester_addres: indexed(address)
+    requester_address: indexed(address)
     target_address: indexed(Bytes[72])
     token_address: address
     token_id: uint256
