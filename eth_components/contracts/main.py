@@ -113,7 +113,7 @@ def cancel_order(nft_contract: address, token_id: uint256):
     order_hash: bytes32 = self._create_order_hash(msg.sender, nft_contract, token_id)
     add_time: uint256 = self.freezer[order_hash]
     assert add_time != 0, "There was no order for your parameters"
-    assert add_time + self.freezer_period >= block.timestamp, "Freezing period didn't end for that order yet"
+    assert add_time + self.freezer_period <= block.timestamp, "Freezing period didn't end for that order yet"
 
     # Remove order from the freezer
     self.freezer[order_hash] = empty(uint256)
