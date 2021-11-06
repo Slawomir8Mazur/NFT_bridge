@@ -29,6 +29,11 @@ vyper -f bytecodeabi eth_components\main.py
 
 I will provide docker images for running validators
 
+Build and run with
+```bash
+docker build -t validators . && docker run -p 8000:80 -e "INFURA_URI=https://ropsten.infura.io/v3/PROJECT_SECRET_KEY" -e ETHEREUM_PRIVATE_KEY=78d003... -e TEZOS_PRIVATE_KEY=edsk3n... validators:latest
+```
+
 TODO
 
 ## Sources
