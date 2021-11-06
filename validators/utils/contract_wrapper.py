@@ -38,15 +38,15 @@ class EthBridge(ContractWrapper):
         contract_path: str = os.path.join('eth_components', 'contracts', 'main.py')
     ):
         super().__init__(contract_address, contract_path)
-        self.pool_interval = 5
+        self.pool_interval = 3
 
-    def get_order_sign_hash(self, original_owner_address: bytes, nft_contract_address: str, token_id: int):
-        return self.contract.functions.get_order_sign_hash(
-            Web3.toChecksumAddress(original_owner_address),
+    def get_order_sign_hash(self, requester_address: str, nft_contract_address: str, token_id: int) -> str:
+        return "0x" + self.contract.functions.get_order_sign_hash(
+            Web3.toChecksumAddress(requester_address),
             Web3.toChecksumAddress(nft_contract_address),
             token_id, 
             True
-        ).call()
+        ).call().hex()
 
     def send_signed_order(self):
         raise NotImplementedError
@@ -78,5 +78,4 @@ class EthBridge(ContractWrapper):
                 "target_address": order_event.args.target_address.decode('utf-8')
             }
         }
-        # broadcast orders to passed functions
         [f(order) for f in args]

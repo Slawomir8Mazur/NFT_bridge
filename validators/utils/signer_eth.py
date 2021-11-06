@@ -27,7 +27,7 @@ class EthSigner:
             raise EnvironmentError("Provided private key at ETHEREUM_PRIVATE_KEY was not valid hex string")
 
     def sign_hash(self, message: bytes):
-        return bytes(self.account.signHash(message).signature).hex()
+        return "0x" + bytes(self.account.signHash(message).signature).hex()
 
     def sign_transaction(self, transaction):
         return self.account.signTransaction(transaction, private_key=self.private_key)
@@ -45,6 +45,6 @@ class EthSigner:
 
     @staticmethod
     def concat_signatures(signatures):
-        return bytes.fromhex("".join([
-        s.hex()[2:] for s in signatures
+        return "0x" + bytes.fromhex("".join([
+        s.hex().removeprefix("0x") for s in signatures
     ]))
