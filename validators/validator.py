@@ -1,4 +1,6 @@
+import os
 import requests
+import json
 from flask import Flask, request
 from utils.signer_eth import EthSigner
 from utils.signer_tezos import TezSigner
@@ -11,11 +13,11 @@ eth_signer = EthSigner()
 tez_signer = TezSigner()
 
 trusted_signers = {
-    # "0xD0a7efE60Fd0850FDc2A63795a4a55460e732f1c": "", #without self
-    "0x66665824128f77Cc2b722A5768914131312e4dC4": "",
-    "0x4b3899157921035c76dac469101663ff34Dbc992": "",
-    "0xdba01494fe398c5387fA1EDa3D6098364C99F7c5": "",
-    "0x0DE1F8Aa263E642ec8932FE15076f829295fA464": ""
+    "0xD0a7efE60Fd0850FDc2A63795a4a55460e732f1c": "http://172.17.0.1:80",
+    "0x66665824128f77Cc2b722A5768914131312e4dC4": "http://172.17.0.2:80",
+    "0x4b3899157921035c76dac469101663ff34Dbc992": "http://172.17.0.3:80",
+    "0xdba01494fe398c5387fA1EDa3D6098364C99F7c5": "http://172.17.0.4:80",
+    "0x0DE1F8Aa263E642ec8932FE15076f829295fA464": "http://172.17.0.5:80"
 }
 
 cache = {}
@@ -32,14 +34,29 @@ def sign_message(message, eth_signer=eth_signer, tez_signer=tez_signer):
 def broadcast(message):
     for uri in trusted_signers.values():
         if uri:
-            resp = requests.get(f"{uri}/sign", json=message)
-            message["signatures"] |= resp.data.get("signatures", {})
+            try:
+                msg_signed = json.loads(requests.get(f"{uri}/sign", json=message).text)
+                message["signatures"] |= msg_signed.get("signatures", {})
+            except Exception as e:
+                with open("logs3.txt", "w") as f:
+                    f.write(str(e))
     return message
 
 def send_to_eth(message):
     # TODO: fix it
     with open("logs2.txt", "a") as f:
         f.write(str(message)+",")
+    try:
+        eth_bridge.call_execute_migration(
+            message["metadata"]["requester_address"],
+            message["metadata"]["token_address"],
+            message["metadata"]["token_id"],
+            eth_signer.concat_signatures(message["signatures"].keys()),
+            eth_signer            
+        )
+    except Exception as e:
+        with open("logs4.txt", "w") as f:
+            f.write(str(e))
 
 def sign_broadcast_send(message):
     message["message"] = eth_bridge.get_order_sign_hash(
@@ -54,51 +71,54 @@ def sign_broadcast_send(message):
     broadcast(message)
     send_to_eth(message)
 
+@app.route('/sign')
+def sign():
+    # assert request.remote_addr in trusted_signers.values(), "sender's IP is untrusted"
+    message = request.json
+    message["signatures"] |= sign_message(
+        bytes.fromhex(message["message"].removeprefix("0x"))
+    )
+    return json.dumps(message)
 
-eth_bridge.pool_logs(
-    eth_bridge.subscribe_to_orders, 
-    sign_broadcast_send
-)
-
-@app.route('/trust', methods=['GET', 'POST'])
+@app.route('/trust')
 def trust():
     """
     works for curl.exe -X POST "localhost:8000/trust?message=a04f8cb4209134f3655c38b889d4bd4f98ba20cb3c4c7f85f74dc16c805633c4&eth_signature=62350e01d69830e361abcf2bef93543195b7f7b2058adf4fda4ebacef9bd3c585cb759e0798cf7923d7041e9e147f5dfed5433a68a3d40eecc747c287749b4b61c"
     """
+    caller_ip = f"http://{request.remote_addr}:80"
     message = request.args.get('message')
     eth_signature = request.args.get('eth_signature')
     signer = EthSigner.get_signer(message, eth_signature, validate=False)
+
     if signer in trusted_signers:
-        trusted_signers[signer] = f"http://{request.remote_addr}:80"
-        return f"IP {trusted_signers[signer]=} is entrusted"
+        if caller_ip in trusted_signers.values():
+            return f"IP {caller_ip} was already entrusted before"
+        else:
+            trusted_signers[signer] = caller_ip
+            return f"IP {caller_ip} has been entrusted"
     return f"IP {request.remote_addr} was NOT entrusted, {signer} is not entrusted address"
 
-@app.route('/sign', methods=['GET', 'POST'])
-def sign():
-    """
-    Works for:
-    curl.exe -X GET localhost:8000/sign?message=a04f8cb4209134f3655c38b889d4bd4f98ba20cb3c4c7f85f74dc16c805633c4
-    """
-    assert request.remote_addr in trusted_signers.values(), "sender's IP is untrusted"
-    message_str = request.args.get('message')
-    assert message_str, AssertionError("no message provided as a parameter")
-    message = bytes.fromhex(message_str.removeprefix("0x"))
-    return {
-        "message": message.hex(),
-        "signatures": [
-            {
-                "type": "ethereum",
-                "address": eth_signer.public_key,
-                "signature": eth_signer.sign_hash(message)
-            },
-            {
-                "type": "tezos",
-                "address": tez_signer.public_key,
-                "signature": tez_signer.sign_hash(message)
-            }
-        ]
-    }
+@app.route('/get/trusted', methods=['GET'])
+def get_trusted():
+    return json.dumps(trusted_signers)
 
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=80, debug=True)
+    # TODO: fix bootstraping cluster - nodes autodiscovery
+    # if trusted_ip:=os.environ.get("TRUSTED_IP"):
+    #     message="a04f8cb4209134f3655c38b889d4bd4f98ba20cb3c4c7f85f74dc16c805633c4" # Random message with the right length
+    #     eth_signature=eth_signer.sign_hash(bytes.fromhex(message)).removeprefix('0x')
+
+    #     # Build trust with trusted
+    #     requests.get(f"http://{trusted_ip}:80/trust?message={message}&eth_signature={eth_signature}")
+
+    #     # Build trust with other cluster nodes
+    #     resp = json.loads(requests.get(f"http://{trusted_ip}:80/get/trusted").text)
+    #     for eth_address, ip_full_address in resp.items():
+    #         # Skip building trust with self
+    #         if eth_address == eth_signer.public_key or not ip_full_address:
+    #             continue
+    #         trusted_signers[eth_address] = ip_full_address
+    #         requests.get(f"{ip_full_address}/trust?message={message}&eth_signature={eth_signature}")
+    app.run(host="0.0.0.0", port=80)
+    eth_bridge.subscribe_to_orders_sync(sign_broadcast_send)
