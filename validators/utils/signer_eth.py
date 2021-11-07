@@ -30,7 +30,7 @@ class EthSigner:
         return "0x" + bytes(self.account.signHash(message).signature).hex()
 
     def sign_transaction(self, transaction):
-        return self.account.signTransaction(transaction, private_key=self.private_key)
+        return self.account.sign_transaction(transaction)
 
     @staticmethod
     def get_signer(message: str, signature: str, validate=False) -> str:
@@ -44,7 +44,7 @@ class EthSigner:
             return ""
 
     @staticmethod
-    def concat_signatures(signatures):
-        return "0x" + bytes.fromhex("".join([
-        s.hex().removeprefix("0x") for s in signatures
-    ]))
+    def concat_signatures(signatures: list[str]):
+        return "0x" + "".join([
+            s.removeprefix("0x") for s in signatures
+        ])
