@@ -1,8 +1,11 @@
-import os
-from typing import Callable
-from web3 import Web3
-from vyper import compile_code
 import asyncio
+import os
+from vyper import compile_code
+from typing import Callable
+from time import sleep
+from web3 import Web3
+from web3.eth import Eth
+from utils.signer_eth import EthSigner
 
 class ContractWrapper:
     w3 = None
@@ -34,7 +37,7 @@ class ContractWrapper:
 
 class EthBridge(ContractWrapper):
     def __init__(self, 
-        contract_address: str = "0xe8750c0d2ead47451a11a19e15c1c12f195080ec", 
+        contract_address: str = "0x4d2b08Ee1e08fCDdE3C66Ea72ce83fB480Ad1F01", 
         contract_path: str = os.path.join('eth_components', 'contracts', 'main.py')
     ):
         super().__init__(contract_address, contract_path)
@@ -51,7 +54,7 @@ class EthBridge(ContractWrapper):
     def send_signed_order(self):
         raise NotImplementedError
 
-    def pool_logs(self, subscribtion, *args):
+    def pool_logs_async(self, subscribtion, *args):
         """
         >>> eth_bridge.pool_logs(eth_bridge.subscribe_to_orders, print)
         """
@@ -63,11 +66,17 @@ class EthBridge(ContractWrapper):
         finally:
             loop.close()
 
-    async def subscribe_to_orders(self, *args):
+    async def subscribe_to_orders_async(self, *args):
         while True:
             for event in self.contract.events.Order.getLogs():
                 self.get_order_metadata(event, *args)
             await asyncio.sleep(self.pool_interval)
+    
+    def subscribe_to_orders_sync(self, *args):
+        while True:
+            for event in self.contract.events.Order.getLogs():
+                self.get_order_metadata(event, *args)
+            sleep(self.pool_interval)
 
     def get_order_metadata(self, order_event, *args: list[Callable]):
         order = {
@@ -79,3 +88,47 @@ class EthBridge(ContractWrapper):
             }
         }
         [f(order) for f in args]
+
+    def call_order_migration(self, nft_contract_address: str, token_id: int, target_account: str, eth_signer: EthSigner) -> str:
+        tx = self.contract.functions.order_migration(
+            Web3.toChecksumAddress(nft_contract_address),
+            token_id,
+            bytes.fromhex(target_account.removeprefix('0x'))
+        ).buildTransaction({
+            "nonce": Eth(self.w3).getTransactionCount(eth_signer.public_key),
+            "from": eth_signer.public_key,
+        }) 
+
+        signed_tx = eth_signer.sign_transaction(tx)
+        tx_hash = self.w3.eth.send_raw_transaction(signed_tx.rawTransaction) 
+        return tx_hash
+
+    def call_execute_migration(self, original_owner: str, nft_contract_address: str, token_id: int, signatures: str, eth_signer: EthSigner) -> str:
+        tx = self.contract.functions.execute_migration(
+            Web3.toChecksumAddress(original_owner),
+            Web3.toChecksumAddress(nft_contract_address),
+            token_id,
+            bytes.fromhex(signatures.removeprefix('0x'))
+        ).buildTransaction({
+            "nonce": Eth(self.w3).getTransactionCount(eth_signer.public_key),
+            "from": eth_signer.public_key,
+        }) 
+
+        signed_tx = eth_signer.sign_transaction(tx)
+        tx_hash = self.w3.eth.send_raw_transaction(signed_tx.rawTransaction) 
+        return tx_hash
+
+    def call_unmigrate_token(self, target_owner: str, nft_contract_address: str, token_id: int, signatures: str, eth_signer: EthSigner) -> str:
+        tx = self.contract.functions.execute_migration(
+            Web3.toChecksumAddress(target_owner),
+            Web3.toChecksumAddress(nft_contract_address),
+            token_id,
+            bytes.fromhex(signatures.removeprefix('0x'))
+        ).buildTransaction({
+            "nonce": Eth(self.w3).getTransactionCount(eth_signer.public_key),
+            "from": eth_signer.public_key,
+        }) 
+
+        signed_tx = eth_signer.sign_transaction(tx)
+        tx_hash = self.w3.eth.send_raw_transaction(signed_tx.rawTransaction) 
+        return tx_hash
