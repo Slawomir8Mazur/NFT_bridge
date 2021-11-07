@@ -18,8 +18,6 @@ required_signatures: public(uint256)
 # Setup freezing 
 freezer_period: public(uint256) # timedelta
 freezer: public(HashMap[bytes32, uint256])
-# >>> 0xedc905c6150a64657f27b89836c75ff42924c311ba766e04f12b9169a586ae1c
-# 1635801289
 
 _unmigrate_counter: uint256
 
@@ -104,6 +102,9 @@ def order_migration(nft_contract: address, token_id: uint256, target_account: By
     self.freezer[order_hash] = block.timestamp
     log Order(msg.sender, target_account, nft_contract, token_id)
 
+    # Transfer NFT to this contract
+    ERC721(nft_contract).transferFrom(msg.sender, self, token_id)
+
 @external
 def cancel_order(nft_contract: address, token_id: uint256):
     """
@@ -117,6 +118,9 @@ def cancel_order(nft_contract: address, token_id: uint256):
 
     # Remove order from the freezer
     self.freezer[order_hash] = empty(uint256)
+    
+    # Send NFT back
+    ERC721(nft_contract).transferFrom(self, msg.sender, token_id)
 
 ######################### VALIDATORS METHODS ##################################
 
@@ -138,9 +142,6 @@ def execute_migration(original_owner: address, nft_contract: address, token_id: 
 
     # Remove order from freezer
     self.freezer[order_hash] = empty(uint256)
-
-    # Transfer NFT to this contract
-    ERC721(nft_contract).transferFrom(original_owner, self, token_id)
 
     log Migration(True, order_sign_hash, signatures)
 
