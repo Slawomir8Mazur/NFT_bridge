@@ -22,8 +22,8 @@ In future implementation I'd like to update approach to signatures, so that ever
 
 * Build with
 ```bash
-vyper -f bytecode .\eth_components\contracts\main.vy > .\eth_components\bytecode.txt
-vyper -f abi .\eth_components\contracts\main.vy > .\eth_components\abi.txt
+vyper -f bytecode .\eth_components\contracts\main.vy > .\eth_components\builds\bytecode.txt
+vyper -f abi .\eth_components\contracts\main.vy > .\eth_components\builds\abi.txt
 ```
 * Deploy at https://www.myetherwallet.com/wallet/deploy
 * Test: manually for now at https://www.myetherwallet.com/wallet/interact
@@ -32,11 +32,7 @@ vyper -f abi .\eth_components\contracts\main.vy > .\eth_components\abi.txt
 ### Tezos part
 
 * Build by copy-pasting the code at https://smartpy.io/ide 
-
-
-Current development phase:
-1. Multisig functionality works
-2. 
+* Deploy through smartpy.io UI or tezos-client
 
 ### Validators
 
@@ -45,7 +41,7 @@ Build and run with
 docker build -t validators . && docker run -p 8000:80 -e "INFURA_URI=https://ropsten.infura.io/v3/PROJECT_SECRET_KEY" -e ETHEREUM_PRIVATE_KEY=78d003... -e TEZOS_PRIVATE_KEY=edsk3n... validators:latest
 ```
 
-## Development phase
+# Development phase
 
 ### General overview
 
@@ -64,6 +60,14 @@ For now it will be one side bridge - allows to migrate ERC721 to Tezos and back 
 4. UI
 * not started, I'm focusing on working backend
 * users can still work through it through CLI tools or MyEtherWallet
+
+# Examples
+
+#### Migrating ERC721 token to Tezos
+
+1. Call `Approve` endpoint in ERC721 contract with parameters `_address`- address of bridge developed here, latest is `0xFE37dd9D3528737f55D1bd8137F4ca67CDcf61fA`, `_tokenId`-id of token you want to migrate, it should be int value
+2. Call `Order_migration` at `0xFE37dd9D3528737f55D1bd8137F4ca67CDcf61fA` with `nft_contract`- address of you contract, I use `0x5036bf1c86b03dc74bcf490ea5fbad4426069069`, `token_id`-id of your token, `target_account`- hex of tezos account, can be `0xa04f8cb4209134f3655c38b889d4bd4f98ba20cb3c4c7f85f74dc16c805633c4`
+3. The token will pop up in your tezos wallet now
 
 ## Sources
 
