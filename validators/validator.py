@@ -5,6 +5,8 @@ from flask import Flask, request
 from utils.signer_eth import EthSigner
 from utils.signer_tezos import TezSigner
 from utils.contract_wrapper import EthBridge
+from apscheduler.schedulers.background import BackgroundScheduler
+
 
 app = Flask(__name__)
 
@@ -12,15 +14,15 @@ eth_bridge = EthBridge()
 eth_signer = EthSigner()
 tez_signer = TezSigner()
 
-trusted_signers = {
-    "0xD0a7efE60Fd0850FDc2A63795a4a55460e732f1c": "http://172.17.0.1:80",
-    "0x66665824128f77Cc2b722A5768914131312e4dC4": "http://172.17.0.2:80",
-    "0x4b3899157921035c76dac469101663ff34Dbc992": "http://172.17.0.3:80",
-    "0xdba01494fe398c5387fA1EDa3D6098364C99F7c5": "http://172.17.0.4:80",
-    "0x0DE1F8Aa263E642ec8932FE15076f829295fA464": "http://172.17.0.5:80"
-}
-
 cache = {}
+
+trusted_signers = {
+    "0xD0a7efE60Fd0850FDc2A63795a4a55460e732f1c": "http://172.24.0.1:80",
+    "0x66665824128f77Cc2b722A5768914131312e4dC4": "http://172.24.0.2:80",
+    "0x4b3899157921035c76dac469101663ff34Dbc992": "http://172.24.0.3:80",
+    "0xdba01494fe398c5387fA1EDa3D6098364C99F7c5": "http://172.24.0.4:80",
+    "0x0DE1F8Aa263E642ec8932FE15076f829295fA464": "http://172.24.0.5:80"
+}
 
 def sign_message(message, eth_signer=eth_signer, tez_signer=tez_signer):
     return {
@@ -43,20 +45,19 @@ def broadcast(message):
     return message
 
 def send_to_eth(message):
-    # TODO: fix it
-    with open("logs2.txt", "a") as f:
-        f.write(str(message)+",")
+    sign_concat = eth_signer.concat_signatures(
+        [sign["signature_eth"] for sign in message["signatures"].values()]
+    )
     try:
         eth_bridge.call_execute_migration(
             message["metadata"]["requester_address"],
             message["metadata"]["token_address"],
             message["metadata"]["token_id"],
-            eth_signer.concat_signatures(message["signatures"].keys()),
+            sign_concat,
             eth_signer            
         )
     except Exception as e:
-        with open("logs4.txt", "w") as f:
-            f.write(str(e))
+        print(str(e))
 
 def sign_broadcast_send(message):
     message["message"] = eth_bridge.get_order_sign_hash(
@@ -102,6 +103,8 @@ def trust():
 def get_trusted():
     return json.dumps(trusted_signers)
 
+def print_yo():
+    print('yo')
 
 if __name__ == '__main__':
     # TODO: fix bootstraping cluster - nodes autodiscovery
@@ -120,5 +123,14 @@ if __name__ == '__main__':
     #             continue
     #         trusted_signers[eth_address] = ip_full_address
     #         requests.get(f"{ip_full_address}/trust?message={message}&eth_signature={eth_signature}")
+
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(
+        func=(lambda: eth_bridge.get_order_metadata(sign_broadcast_send)), 
+        trigger="interval", 
+        seconds=5,
+        max_instances=4
+    )
+    scheduler.start()
+    # eth_bridge.subscribe_to_orders_sync(sign_broadcast_send)
     app.run(host="0.0.0.0", port=80)
-    eth_bridge.subscribe_to_orders_sync(sign_broadcast_send)

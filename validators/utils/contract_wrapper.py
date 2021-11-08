@@ -37,11 +37,10 @@ class ContractWrapper:
 
 class EthBridge(ContractWrapper):
     def __init__(self, 
-        contract_address: str = "0x4d2b08Ee1e08fCDdE3C66Ea72ce83fB480Ad1F01", 
-        contract_path: str = os.path.join('eth_components', 'contracts', 'main.py')
+        contract_address: str = "0xFE37dd9D3528737f55D1bd8137F4ca67CDcf61fA", 
+        contract_path: str = os.path.join('eth_components', 'contracts', 'main.vy')
     ):
         super().__init__(contract_address, contract_path)
-        self.pool_interval = 3
 
     def get_order_sign_hash(self, requester_address: str, nft_contract_address: str, token_id: int) -> str:
         return "0x" + self.contract.functions.get_order_sign_hash(
@@ -50,44 +49,22 @@ class EthBridge(ContractWrapper):
             token_id, 
             True
         ).call().hex()
-
-    def send_signed_order(self):
-        raise NotImplementedError
-
-    def pool_logs_async(self, subscribtion, *args):
-        """
-        >>> eth_bridge.pool_logs(eth_bridge.subscribe_to_orders, print)
-        """
-        loop = asyncio.get_event_loop()
-        try:
-            loop.run_until_complete(asyncio.gather(
-                subscribtion(*args)
-            ))
-        finally:
-            loop.close()
-
-    async def subscribe_to_orders_async(self, *args):
-        while True:
-            for event in self.contract.events.Order.getLogs():
-                self.get_order_metadata(event, *args)
-            await asyncio.sleep(self.pool_interval)
     
-    def subscribe_to_orders_sync(self, *args):
-        while True:
-            for event in self.contract.events.Order.getLogs():
-                self.get_order_metadata(event, *args)
-            sleep(self.pool_interval)
-
-    def get_order_metadata(self, order_event, *args: list[Callable]):
-        order = {
-            "metadata":{
-                "token_id": order_event.args.token_id,
-                "token_address": order_event.args.token_address,
-                "requester_address": order_event.args.requester_address,
-                "target_address": order_event.args.target_address.decode('utf-8')
+    def subscribe_to_orders(self, *args):
+        for event in self.contract.events.Order.getLogs():
+            self.get_order_metadata(event, *args)
+            
+    def get_order_metadata(self, *args: list[Callable]):
+        for event in self.contract.events.Order.getLogs():
+            order = {
+                "metadata":{
+                    "token_id": event.args.token_id,
+                    "token_address": event.args.token_address,
+                    "requester_address": event.args.requester_address,
+                    "target_address": event.args.target_address.decode('utf-8')
+                }
             }
-        }
-        [f(order) for f in args]
+            [f(order) for f in args]
 
     def call_order_migration(self, nft_contract_address: str, token_id: int, target_account: str, eth_signer: EthSigner) -> str:
         tx = self.contract.functions.order_migration(
