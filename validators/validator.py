@@ -17,11 +17,11 @@ tez_signer = TezSigner()
 cache = {}
 
 trusted_signers = {
-    "0xD0a7efE60Fd0850FDc2A63795a4a55460e732f1c": "http://172.24.0.1:80",
-    "0x66665824128f77Cc2b722A5768914131312e4dC4": "http://172.24.0.2:80",
-    "0x4b3899157921035c76dac469101663ff34Dbc992": "http://172.24.0.3:80",
-    "0xdba01494fe398c5387fA1EDa3D6098364C99F7c5": "http://172.24.0.4:80",
-    "0x0DE1F8Aa263E642ec8932FE15076f829295fA464": "http://172.24.0.5:80"
+    "0x66665824128f77Cc2b722A5768914131312e4dC4": "http://172.1.0.2:80",
+    "0x4b3899157921035c76dac469101663ff34Dbc992": "http://172.1.0.3:80",
+    "0xdba01494fe398c5387fA1EDa3D6098364C99F7c5": "http://172.1.0.4:80",
+    "0x0DE1F8Aa263E642ec8932FE15076f829295fA464": "http://172.1.0.5:80"
+    "0xD0a7efE60Fd0850FDc2A63795a4a55460e732f1c": "http://172.1.0.6:80",
 }
 
 def sign_message(message, eth_signer=eth_signer, tez_signer=tez_signer):
@@ -103,34 +103,15 @@ def trust():
 def get_trusted():
     return json.dumps(trusted_signers)
 
-def print_yo():
-    print('yo')
 
 if __name__ == '__main__':
-    # TODO: fix bootstraping cluster - nodes autodiscovery
-    # if trusted_ip:=os.environ.get("TRUSTED_IP"):
-    #     message="a04f8cb4209134f3655c38b889d4bd4f98ba20cb3c4c7f85f74dc16c805633c4" # Random message with the right length
-    #     eth_signature=eth_signer.sign_hash(bytes.fromhex(message)).removeprefix('0x')
-
-    #     # Build trust with trusted
-    #     requests.get(f"http://{trusted_ip}:80/trust?message={message}&eth_signature={eth_signature}")
-
-    #     # Build trust with other cluster nodes
-    #     resp = json.loads(requests.get(f"http://{trusted_ip}:80/get/trusted").text)
-    #     for eth_address, ip_full_address in resp.items():
-    #         # Skip building trust with self
-    #         if eth_address == eth_signer.public_key or not ip_full_address:
-    #             continue
-    #         trusted_signers[eth_address] = ip_full_address
-    #         requests.get(f"{ip_full_address}/trust?message={message}&eth_signature={eth_signature}")
-
     scheduler = BackgroundScheduler()
     scheduler.add_job(
         func=(lambda: eth_bridge.get_order_metadata(sign_broadcast_send)), 
         trigger="interval", 
-        seconds=5,
+        seconds=10,
         max_instances=4
     )
     scheduler.start()
-    # eth_bridge.subscribe_to_orders_sync(sign_broadcast_send)
+    
     app.run(host="0.0.0.0", port=80)
