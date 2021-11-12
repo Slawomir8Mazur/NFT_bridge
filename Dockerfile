@@ -14,6 +14,10 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt requirements.txt
 RUN pip3 install -r requirements.txt
 
+ENV PATH "$PATH:/app/execs"
+
 COPY . .
 
-CMD ["python", "validators/validator.py"]
+# RUN echo 'export PATH="app/execs:$PATH"' >> $HOME/.bashrc && source $HOME/.bashrc 
+
+CMD ["python", "validators/utils/signer_tezos.py"]
