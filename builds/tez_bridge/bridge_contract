@@ -1,0 +1,310 @@
+parameter (or (or (pair %mint_token (nat %exp_block) (pair (pair %mint_params (pair (address %address) (nat %amount)) (pair (map %metadata string bytes) (nat %token_id))) (list %signatures signature))) (pair %request_unmint (nat %amount) (pair (string %target) (nat %token_id)))) (or (pair %set_minter (nat %exp_block) (pair (address %nft_contract) (list %signatures signature))) (pair %unmint_token (nat %exp_block) (pair (list %signatures signature) (pair %unmint_params (address %address) (pair (nat %amount) (nat %token_id)))))));
+storage   (pair (pair (address %nft_contract) (list %pks key)) (pair (big_map %requested_unmints (pair (address %address) (pair (nat %amount) (nat %token_id))) string) (nat %required_signatures)));
+code
+  {
+    UNPAIR;     # @parameter : @storage
+    IF_LEFT
+      {
+        IF_LEFT
+          {
+            # == mint_token ==
+            # sp.verify(params.exp_block >= sp.level, 'That message expired') # @parameter%mint_token : @storage
+            LEVEL;      # @level : @parameter%mint_token : @storage
+            SWAP;       # @parameter%mint_token : @level : @storage
+            DUP;        # @parameter%mint_token : @parameter%mint_token : @level : @storage
+            DUG 2;      # @parameter%mint_token : @level : @parameter%mint_token : @storage
+            CAR;        # nat : @level : @parameter%mint_token : @storage
+            COMPARE;    # int : @parameter%mint_token : @storage
+            GE;         # bool : @parameter%mint_token : @storage
+            IF
+              {}
+              {
+                PUSH string "That message expired"; # string : @parameter%mint_token : @storage
+                FAILWITH;   # FAILED
+              }; # @parameter%mint_token : @storage
+            # counter = sp.local("counter", 0) # @parameter%mint_token : @storage
+            PUSH nat 0; # nat : @parameter%mint_token : @storage
+            SWAP;       # @parameter%mint_token : nat : @storage
+            # for sign in params.signatures: ... # @parameter%mint_token : nat : @storage
+            DUP;        # @parameter%mint_token : @parameter%mint_token : nat : @storage
+            DUG 2;      # @parameter%mint_token : nat : @parameter%mint_token : @storage
+            GET 4;      # list signature : nat : @parameter%mint_token : @storage
+            ITER
+              {
+                # for pk in self.data.pks: ... # signature : nat : @parameter%mint_token : @storage
+                DUP 4;      # @storage : signature : nat : @parameter%mint_token : @storage
+                CAR;        # pair (address %nft_contract) (list %pks key) : signature : nat : @parameter%mint_token : @storage
+                CDR;        # list key : signature : nat : @parameter%mint_token : @storage
+                ITER
+                  {
+                    # if sp.check_signature(pk, sign, sp.pack((params.mint_params, params.exp_block))): # key : signature : nat : @parameter%mint_token : @storage
+                    DIG 3;      # @parameter%mint_token : key : signature : nat : @storage
+                    DUP;        # @parameter%mint_token : @parameter%mint_token : key : signature : nat : @storage
+                    CAR;        # nat : @parameter%mint_token : key : signature : nat : @storage
+                    SWAP;       # @parameter%mint_token : nat : key : signature : nat : @storage
+                    DUP;        # @parameter%mint_token : @parameter%mint_token : nat : key : signature : nat : @storage
+                    DUG 5;      # @parameter%mint_token : nat : key : signature : nat : @parameter%mint_token : @storage
+                    GET 3;      # pair (pair (address %address) (nat %amount)) (pair (map %metadata string bytes) (nat %token_id)) : nat : key : signature : nat : @parameter%mint_token : @storage
+                    PAIR;       # pair (pair (pair (address %address) (nat %amount)) (pair (map %metadata string bytes) (nat %token_id))) nat : key : signature : nat : @parameter%mint_token : @storage
+                    PACK;       # bytes : key : signature : nat : @parameter%mint_token : @storage
+                    DUP 3;      # signature : bytes : key : signature : nat : @parameter%mint_token : @storage
+                    DIG 2;      # key : signature : bytes : signature : nat : @parameter%mint_token : @storage
+                    CHECK_SIGNATURE; # bool : signature : nat : @parameter%mint_token : @storage
+                    IF
+                      {
+                        # counter.value += 1 # signature : nat : @parameter%mint_token : @storage
+                        PUSH nat 1; # nat : signature : nat : @parameter%mint_token : @storage
+                        DIG 2;      # nat : nat : signature : @parameter%mint_token : @storage
+                        ADD;        # nat : signature : @parameter%mint_token : @storage
+                        SWAP;       # signature : nat : @parameter%mint_token : @storage
+                      }
+                      {}; # signature : nat : @parameter%mint_token : @storage
+                  }; # signature : nat : @parameter%mint_token : @storage
+                DROP;       # nat : @parameter%mint_token : @storage
+              }; # nat : @parameter%mint_token : @storage
+            # sp.verify(counter.value >= self.data.required_signatures, 'Too few valid signatures provided') # nat : @parameter%mint_token : @storage
+            DUP 3;      # @storage : nat : @parameter%mint_token : @storage
+            GET 4;      # nat : nat : @parameter%mint_token : @storage
+            SWAP;       # nat : nat : @parameter%mint_token : @storage
+            COMPARE;    # int : @parameter%mint_token : @storage
+            GE;         # bool : @parameter%mint_token : @storage
+            IF
+              {}
+              {
+                PUSH string "Too few valid signatures provided"; # string : @parameter%mint_token : @storage
+                FAILWITH;   # FAILED
+              }; # @parameter%mint_token : @storage
+            # sp.transfer(params.mint_params, sp.tez(0), sp.contract(sp.TRecord(address = sp.TAddress, amount = sp.TNat, metadata = sp.TMap(sp.TString, sp.TBytes), token_id = sp.TNat).layout((("address", "amount"), ("metadata", "token_id"))), self.data.nft_contract, entry_point='mint').open_some()) # @parameter%mint_token : @storage
+            NIL operation; # list operation : @parameter%mint_token : @storage
+            DUP 3;      # @storage : list operation : @parameter%mint_token : @storage
+            CAR;        # pair (address %nft_contract) (list %pks key) : list operation : @parameter%mint_token : @storage
+            CAR;        # address : list operation : @parameter%mint_token : @storage
+            CONTRACT %mint (pair (pair address nat) (pair (map string bytes) nat)); # option (contract (pair (pair address nat) (pair (map string bytes) nat))) : list operation : @parameter%mint_token : @storage
+            IF_NONE
+              {
+                PUSH int 798; # int : list operation : @parameter%mint_token : @storage
+                FAILWITH;   # FAILED
+              }
+              {}; # @some : list operation : @parameter%mint_token : @storage
+            PUSH mutez 0; # mutez : @some : list operation : @parameter%mint_token : @storage
+            DIG 3;      # @parameter%mint_token : mutez : @some : list operation : @storage
+            GET 3;      # pair (pair (address %address) (nat %amount)) (pair (map %metadata string bytes) (nat %token_id)) : mutez : @some : list operation : @storage
+            TRANSFER_TOKENS; # operation : list operation : @storage
+            CONS;       # list operation : @storage
+          }
+          {
+            SWAP;       # @storage : @parameter%request_unmint
+            # == request_unmint ==
+            # self.data.requested_unmints[sp.record(address = sp.sender, amount = params.amount, token_id = params.token_id)] = params.target # @storage : @parameter%request_unmint
+            DUP;        # @storage : @storage : @parameter%request_unmint
+            GET 3;      # big_map (pair (address %address) (pair (nat %amount) (nat %token_id))) string : @storage : @parameter%request_unmint
+            DUP 3;      # @parameter%request_unmint : big_map (pair (address %address) (pair (nat %amount) (nat %token_id))) string : @storage : @parameter%request_unmint
+            GET 3;      # string : big_map (pair (address %address) (pair (nat %amount) (nat %token_id))) string : @storage : @parameter%request_unmint
+            SOME;       # option string : big_map (pair (address %address) (pair (nat %amount) (nat %token_id))) string : @storage : @parameter%request_unmint
+            DIG 3;      # @parameter%request_unmint : option string : big_map (pair (address %address) (pair (nat %amount) (nat %token_id))) string : @storage
+            DUP;        # @parameter%request_unmint : @parameter%request_unmint : option string : big_map (pair (address %address) (pair (nat %amount) (nat %token_id))) string : @storage
+            GET 4;      # nat : @parameter%request_unmint : option string : big_map (pair (address %address) (pair (nat %amount) (nat %token_id))) string : @storage
+            SWAP;       # @parameter%request_unmint : nat : option string : big_map (pair (address %address) (pair (nat %amount) (nat %token_id))) string : @storage
+            CAR;        # nat : nat : option string : big_map (pair (address %address) (pair (nat %amount) (nat %token_id))) string : @storage
+            SENDER;     # @sender : nat : nat : option string : big_map (pair (address %address) (pair (nat %amount) (nat %token_id))) string : @storage
+            PAIR 3;     # pair @sender (pair nat nat) : option string : big_map (pair (address %address) (pair (nat %amount) (nat %token_id))) string : @storage
+            UPDATE;     # big_map (pair address (pair nat nat)) string : @storage
+            UPDATE 3;   # @storage
+            NIL operation; # list operation : @storage
+          }; # list operation : @storage
+      }
+      {
+        IF_LEFT
+          {
+            # == set_minter ==
+            # sp.verify(params.exp_block >= sp.level, 'That message expired') # @parameter%set_minter : @storage
+            LEVEL;      # @level : @parameter%set_minter : @storage
+            SWAP;       # @parameter%set_minter : @level : @storage
+            DUP;        # @parameter%set_minter : @parameter%set_minter : @level : @storage
+            DUG 2;      # @parameter%set_minter : @level : @parameter%set_minter : @storage
+            CAR;        # nat : @level : @parameter%set_minter : @storage
+            COMPARE;    # int : @parameter%set_minter : @storage
+            GE;         # bool : @parameter%set_minter : @storage
+            IF
+              {}
+              {
+                PUSH string "That message expired"; # string : @parameter%set_minter : @storage
+                FAILWITH;   # FAILED
+              }; # @parameter%set_minter : @storage
+            # counter = sp.local("counter", 0) # @parameter%set_minter : @storage
+            PUSH nat 0; # nat : @parameter%set_minter : @storage
+            SWAP;       # @parameter%set_minter : nat : @storage
+            # for sign in params.signatures: ... # @parameter%set_minter : nat : @storage
+            DUP;        # @parameter%set_minter : @parameter%set_minter : nat : @storage
+            DUG 2;      # @parameter%set_minter : nat : @parameter%set_minter : @storage
+            GET 4;      # list signature : nat : @parameter%set_minter : @storage
+            ITER
+              {
+                # for pk in self.data.pks: ... # signature : nat : @parameter%set_minter : @storage
+                DUP 4;      # @storage : signature : nat : @parameter%set_minter : @storage
+                CAR;        # pair (address %nft_contract) (list %pks key) : signature : nat : @parameter%set_minter : @storage
+                CDR;        # list key : signature : nat : @parameter%set_minter : @storage
+                ITER
+                  {
+                    # if sp.check_signature(pk, sign, sp.pack((params.nft_contract, params.exp_block))): # key : signature : nat : @parameter%set_minter : @storage
+                    DIG 3;      # @parameter%set_minter : key : signature : nat : @storage
+                    DUP;        # @parameter%set_minter : @parameter%set_minter : key : signature : nat : @storage
+                    CAR;        # nat : @parameter%set_minter : key : signature : nat : @storage
+                    SWAP;       # @parameter%set_minter : nat : key : signature : nat : @storage
+                    DUP;        # @parameter%set_minter : @parameter%set_minter : nat : key : signature : nat : @storage
+                    DUG 5;      # @parameter%set_minter : nat : key : signature : nat : @parameter%set_minter : @storage
+                    GET 3;      # address : nat : key : signature : nat : @parameter%set_minter : @storage
+                    PAIR;       # pair address nat : key : signature : nat : @parameter%set_minter : @storage
+                    PACK;       # bytes : key : signature : nat : @parameter%set_minter : @storage
+                    DUP 3;      # signature : bytes : key : signature : nat : @parameter%set_minter : @storage
+                    DIG 2;      # key : signature : bytes : signature : nat : @parameter%set_minter : @storage
+                    CHECK_SIGNATURE; # bool : signature : nat : @parameter%set_minter : @storage
+                    IF
+                      {
+                        # counter.value += 1 # signature : nat : @parameter%set_minter : @storage
+                        PUSH nat 1; # nat : signature : nat : @parameter%set_minter : @storage
+                        DIG 2;      # nat : nat : signature : @parameter%set_minter : @storage
+                        ADD;        # nat : signature : @parameter%set_minter : @storage
+                        SWAP;       # signature : nat : @parameter%set_minter : @storage
+                      }
+                      {}; # signature : nat : @parameter%set_minter : @storage
+                  }; # signature : nat : @parameter%set_minter : @storage
+                DROP;       # nat : @parameter%set_minter : @storage
+              }; # nat : @parameter%set_minter : @storage
+            # sp.verify(counter.value >= self.data.required_signatures, 'Too few valid signatures provided') # nat : @parameter%set_minter : @storage
+            DUP 3;      # @storage : nat : @parameter%set_minter : @storage
+            GET 4;      # nat : nat : @parameter%set_minter : @storage
+            SWAP;       # nat : nat : @parameter%set_minter : @storage
+            COMPARE;    # int : @parameter%set_minter : @storage
+            GE;         # bool : @parameter%set_minter : @storage
+            IF
+              {}
+              {
+                PUSH string "Too few valid signatures provided"; # string : @parameter%set_minter : @storage
+                FAILWITH;   # FAILED
+              }; # @parameter%set_minter : @storage
+            SWAP;       # @storage : @parameter%set_minter
+            # self.data.nft_contract = params.nft_contract # @storage : @parameter%set_minter
+            UNPAIR;     # pair (address %nft_contract) (list %pks key) : pair (big_map %requested_unmints (pair (address %address) (pair (nat %amount) (nat %token_id))) string) (nat %required_signatures) : @parameter%set_minter
+            CDR;        # list key : pair (big_map %requested_unmints (pair (address %address) (pair (nat %amount) (nat %token_id))) string) (nat %required_signatures) : @parameter%set_minter
+            DIG 2;      # @parameter%set_minter : list key : pair (big_map %requested_unmints (pair (address %address) (pair (nat %amount) (nat %token_id))) string) (nat %required_signatures)
+            GET 3;      # address : list key : pair (big_map %requested_unmints (pair (address %address) (pair (nat %amount) (nat %token_id))) string) (nat %required_signatures)
+            PAIR;       # pair address (list key) : pair (big_map %requested_unmints (pair (address %address) (pair (nat %amount) (nat %token_id))) string) (nat %required_signatures)
+            PAIR;       # pair (pair address (list key)) (pair (big_map %requested_unmints (pair (address %address) (pair (nat %amount) (nat %token_id))) string) (nat %required_signatures))
+            NIL operation; # list operation : pair (pair address (list key)) (pair (big_map %requested_unmints (pair (address %address) (pair (nat %amount) (nat %token_id))) string) (nat %required_signatures))
+          }
+          {
+            # == unmint_token ==
+            # sp.verify(params.exp_block >= sp.level, 'That message expired') # @parameter%unmint_token : @storage
+            LEVEL;      # @level : @parameter%unmint_token : @storage
+            SWAP;       # @parameter%unmint_token : @level : @storage
+            DUP;        # @parameter%unmint_token : @parameter%unmint_token : @level : @storage
+            DUG 2;      # @parameter%unmint_token : @level : @parameter%unmint_token : @storage
+            CAR;        # nat : @level : @parameter%unmint_token : @storage
+            COMPARE;    # int : @parameter%unmint_token : @storage
+            GE;         # bool : @parameter%unmint_token : @storage
+            IF
+              {}
+              {
+                PUSH string "That message expired"; # string : @parameter%unmint_token : @storage
+                FAILWITH;   # FAILED
+              }; # @parameter%unmint_token : @storage
+            # counter = sp.local("counter", 0) # @parameter%unmint_token : @storage
+            PUSH nat 0; # nat : @parameter%unmint_token : @storage
+            SWAP;       # @parameter%unmint_token : nat : @storage
+            # for sign in params.signatures: ... # @parameter%unmint_token : nat : @storage
+            DUP;        # @parameter%unmint_token : @parameter%unmint_token : nat : @storage
+            DUG 2;      # @parameter%unmint_token : nat : @parameter%unmint_token : @storage
+            GET 3;      # list signature : nat : @parameter%unmint_token : @storage
+            ITER
+              {
+                # for pk in self.data.pks: ... # signature : nat : @parameter%unmint_token : @storage
+                DUP 4;      # @storage : signature : nat : @parameter%unmint_token : @storage
+                CAR;        # pair (address %nft_contract) (list %pks key) : signature : nat : @parameter%unmint_token : @storage
+                CDR;        # list key : signature : nat : @parameter%unmint_token : @storage
+                ITER
+                  {
+                    # if sp.check_signature(pk, sign, sp.pack((params.unmint_params, params.exp_block))): # key : signature : nat : @parameter%unmint_token : @storage
+                    DIG 3;      # @parameter%unmint_token : key : signature : nat : @storage
+                    DUP;        # @parameter%unmint_token : @parameter%unmint_token : key : signature : nat : @storage
+                    CAR;        # nat : @parameter%unmint_token : key : signature : nat : @storage
+                    SWAP;       # @parameter%unmint_token : nat : key : signature : nat : @storage
+                    DUP;        # @parameter%unmint_token : @parameter%unmint_token : nat : key : signature : nat : @storage
+                    DUG 5;      # @parameter%unmint_token : nat : key : signature : nat : @parameter%unmint_token : @storage
+                    GET 4;      # pair (address %address) (pair (nat %amount) (nat %token_id)) : nat : key : signature : nat : @parameter%unmint_token : @storage
+                    PAIR;       # pair (pair (address %address) (pair (nat %amount) (nat %token_id))) nat : key : signature : nat : @parameter%unmint_token : @storage
+                    PACK;       # bytes : key : signature : nat : @parameter%unmint_token : @storage
+                    DUP 3;      # signature : bytes : key : signature : nat : @parameter%unmint_token : @storage
+                    DIG 2;      # key : signature : bytes : signature : nat : @parameter%unmint_token : @storage
+                    CHECK_SIGNATURE; # bool : signature : nat : @parameter%unmint_token : @storage
+                    IF
+                      {
+                        # counter.value += 1 # signature : nat : @parameter%unmint_token : @storage
+                        PUSH nat 1; # nat : signature : nat : @parameter%unmint_token : @storage
+                        DIG 2;      # nat : nat : signature : @parameter%unmint_token : @storage
+                        ADD;        # nat : signature : @parameter%unmint_token : @storage
+                        SWAP;       # signature : nat : @parameter%unmint_token : @storage
+                      }
+                      {}; # signature : nat : @parameter%unmint_token : @storage
+                  }; # signature : nat : @parameter%unmint_token : @storage
+                DROP;       # nat : @parameter%unmint_token : @storage
+              }; # nat : @parameter%unmint_token : @storage
+            # sp.verify(counter.value >= self.data.required_signatures, 'Too few valid signatures provided') # nat : @parameter%unmint_token : @storage
+            DUP 3;      # @storage : nat : @parameter%unmint_token : @storage
+            GET 4;      # nat : nat : @parameter%unmint_token : @storage
+            SWAP;       # nat : nat : @parameter%unmint_token : @storage
+            COMPARE;    # int : @parameter%unmint_token : @storage
+            GE;         # bool : @parameter%unmint_token : @storage
+            IF
+              {}
+              {
+                PUSH string "Too few valid signatures provided"; # string : @parameter%unmint_token : @storage
+                FAILWITH;   # FAILED
+              }; # @parameter%unmint_token : @storage
+            SWAP;       # @storage : @parameter%unmint_token
+            # sp.verify(self.data.requested_unmints.contains(params.unmint_params), 'Unmint execution doesn't match any unmint orders') # @storage : @parameter%unmint_token
+            DUP;        # @storage : @storage : @parameter%unmint_token
+            DUG 2;      # @storage : @parameter%unmint_token : @storage
+            GET 3;      # big_map (pair (address %address) (pair (nat %amount) (nat %token_id))) string : @parameter%unmint_token : @storage
+            SWAP;       # @parameter%unmint_token : big_map (pair (address %address) (pair (nat %amount) (nat %token_id))) string : @storage
+            DUP;        # @parameter%unmint_token : @parameter%unmint_token : big_map (pair (address %address) (pair (nat %amount) (nat %token_id))) string : @storage
+            DUG 2;      # @parameter%unmint_token : big_map (pair (address %address) (pair (nat %amount) (nat %token_id))) string : @parameter%unmint_token : @storage
+            GET 4;      # pair (address %address) (pair (nat %amount) (nat %token_id)) : big_map (pair (address %address) (pair (nat %amount) (nat %token_id))) string : @parameter%unmint_token : @storage
+            MEM;        # bool : @parameter%unmint_token : @storage
+            IF
+              {}
+              {
+                PUSH string "Unmint execution doesn't match any unmint orders"; # string : @parameter%unmint_token : @storage
+                FAILWITH;   # FAILED
+              }; # @parameter%unmint_token : @storage
+            # sp.transfer(params.unmint_params, sp.tez(0), sp.contract(sp.TRecord(address = sp.TAddress, amount = sp.TNat, token_id = sp.TNat).layout(("address", ("amount", "token_id"))), self.data.nft_contract, entry_point='unmint').open_some()) # @parameter%unmint_token : @storage
+            NIL operation; # list operation : @parameter%unmint_token : @storage
+            DUP 3;      # @storage : list operation : @parameter%unmint_token : @storage
+            CAR;        # pair (address %nft_contract) (list %pks key) : list operation : @parameter%unmint_token : @storage
+            CAR;        # address : list operation : @parameter%unmint_token : @storage
+            CONTRACT %unmint (pair address (pair nat nat)); # option (contract (pair address (pair nat nat))) : list operation : @parameter%unmint_token : @storage
+            IF_NONE
+              {
+                PUSH int 764; # int : list operation : @parameter%unmint_token : @storage
+                FAILWITH;   # FAILED
+              }
+              {}; # @some : list operation : @parameter%unmint_token : @storage
+            PUSH mutez 0; # mutez : @some : list operation : @parameter%unmint_token : @storage
+            DUP 4;      # @parameter%unmint_token : mutez : @some : list operation : @parameter%unmint_token : @storage
+            GET 4;      # pair (address %address) (pair (nat %amount) (nat %token_id)) : mutez : @some : list operation : @parameter%unmint_token : @storage
+            TRANSFER_TOKENS; # operation : list operation : @parameter%unmint_token : @storage
+            CONS;       # list operation : @parameter%unmint_token : @storage
+            # del self.data.requested_unmints[params.unmint_params] # list operation : @parameter%unmint_token : @storage
+            DIG 2;      # @storage : list operation : @parameter%unmint_token
+            DUP;        # @storage : @storage : list operation : @parameter%unmint_token
+            GET 3;      # big_map (pair (address %address) (pair (nat %amount) (nat %token_id))) string : @storage : list operation : @parameter%unmint_token
+            NONE string; # option string : big_map (pair (address %address) (pair (nat %amount) (nat %token_id))) string : @storage : list operation : @parameter%unmint_token
+            DIG 4;      # @parameter%unmint_token : option string : big_map (pair (address %address) (pair (nat %amount) (nat %token_id))) string : @storage : list operation
+            GET 4;      # pair (address %address) (pair (nat %amount) (nat %token_id)) : option string : big_map (pair (address %address) (pair (nat %amount) (nat %token_id))) string : @storage : list operation
+            UPDATE;     # big_map (pair (address %address) (pair (nat %amount) (nat %token_id))) string : @storage : list operation
+            UPDATE 3;   # @storage : list operation
+            SWAP;       # list operation : @storage
+          }; # list operation : pair (pair address (list key)) (pair (big_map %requested_unmints (pair (address %address) (pair (nat %amount) (nat %token_id))) string) (nat %required_signatures))
+      }; # list operation : pair (pair address (list key)) (pair (big_map %requested_unmints (pair (address %address) (pair (nat %amount) (nat %token_id))) string) (nat %required_signatures))
+    PAIR;       # pair (list operation) (pair (pair address (list key)) (pair (big_map %requested_unmints (pair (address %address) (pair (nat %amount) (nat %token_id))) string) (nat %required_signatures)))
+  };

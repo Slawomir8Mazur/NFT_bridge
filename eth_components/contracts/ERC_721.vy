@@ -63,11 +63,12 @@ ownerToNFTokenCount: HashMap[address, uint256]
 # @dev Mapping from owner address to mapping of operator addresses.
 ownerToOperators: HashMap[address, HashMap[address, bool]]
 
-# @dev Address of minter, who can mint a token
-minter: address
-
 # @dev Mapping of interface id to bool about whether or not it's supported
 supportedInterfaces: HashMap[bytes32, bool]
+
+_name: String[20]
+_symbol: String[8]
+_token_uri: HashMap[uint256, String[53]]
 
 # @dev ERC165 interface ID of ERC165
 ERC165_INTERFACE_ID: constant(bytes32) = 0x0000000000000000000000000000000000000000000000000000000001ffc9a7
@@ -83,7 +84,8 @@ def __init__():
     """
     self.supportedInterfaces[ERC165_INTERFACE_ID] = True
     self.supportedInterfaces[ERC721_INTERFACE_ID] = True
-    self.minter = msg.sender
+    self._name = "Test_nft"
+    self._symbol = "TNFT"
 
 
 @view
@@ -323,22 +325,20 @@ def setApprovalForAll(_operator: address, _approved: bool):
 ### MINT & BURN FUNCTIONS ###
 
 @external
-def mint(_to: address, _tokenId: uint256) -> bool:
+def mint(_to: address, _tokenId: uint256, token_uri: String[53]) -> bool:
     """
     @dev Function to mint tokens
-         Throws if `msg.sender` is not the minter.
          Throws if `_to` is zero address.
          Throws if `_tokenId` is owned by someone.
     @param _to The address that will receive the minted tokens.
     @param _tokenId The token id to mint.
     @return A boolean that indicates if the operation was successful.
     """
-    # Throws if `msg.sender` is not the minter
-    assert msg.sender == self.minter
     # Throws if `_to` is zero address
     assert _to != ZERO_ADDRESS
     # Add NFT. Throws if `_tokenId` is owned by someone
     self._addTokenTo(_to, _tokenId)
+    self._token_uri[_tokenId] = token_uri
     log Transfer(ZERO_ADDRESS, _to, _tokenId)
     return True
 
@@ -359,4 +359,21 @@ def burn(_tokenId: uint256):
     assert owner != ZERO_ADDRESS
     self._clearApproval(owner, _tokenId)
     self._removeTokenFrom(owner, _tokenId)
+    self._token_uri[_tokenId] = empty(String[53])
     log Transfer(owner, ZERO_ADDRESS, _tokenId)
+
+@view
+@external
+def name() -> String[20]:
+    return self._name
+
+    # /// @notice An abbreviated name for NFTs in this contract
+@view
+@external
+def symbol() -> String[8]:
+    return self._symbol
+
+@view
+@external
+def tokenURI(_tokenId: uint256) -> String[53]:
+    return self._token_uri[_tokenId]
