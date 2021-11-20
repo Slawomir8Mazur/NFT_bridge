@@ -15,9 +15,9 @@ COPY requirements.txt requirements.txt
 RUN pip3 install -r requirements.txt
 
 ENV PATH "$PATH:/app/execs"
+ENV TEZOS_CLIENT_UNSAFE_DISABLE_DISCLAIMER yes
 
 COPY . .
+# COPY tezos_components/compiled /app/validators/utils
 
-# RUN echo 'export PATH="app/execs:$PATH"' >> $HOME/.bashrc && source $HOME/.bashrc 
-
-CMD ["python", "validators/utils/signer_tezos.py"]
+CMD ["python", "validators/validator.py"]

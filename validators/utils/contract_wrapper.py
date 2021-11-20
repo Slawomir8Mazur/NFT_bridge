@@ -1,7 +1,5 @@
-import asyncio
 import os
 from vyper import compile_code
-from typing import Callable
 from time import sleep
 from web3 import Web3
 from web3.eth import Eth
@@ -35,10 +33,53 @@ class ContractWrapper:
         with open(path_to_file, "r") as f:
             return compile_code(f.read(), *args)
 
+class EthNft(ContractWrapper):
+    def __init__(self, 
+        contract_address: str, 
+        contract_path: str = os.path.join('eth_components', 'contracts', 'erc_721.vy')
+    ):
+        super().__init__(contract_address, contract_path)
+
+    def get_name(self):
+        return self.contract.functions.name().call()
+
+    def get_symbol(self):
+        return self.contract.functions.symbol().call()
+
+    def get_token_uri(self, token_id: int):
+        return self.contract.functions.tokenURI(token_id).call()
+
+    def call_mint(self, token_id: int, token_uri: str, eth_signer: EthSigner) -> str:
+        tx = self.contract.functions.mint(
+            Web3.toChecksumAddress(eth_signer.public_key),
+            token_id,
+            token_uri
+        ).buildTransaction({
+            "nonce": Eth(self.w3).getTransactionCount(eth_signer.public_key),
+            "from": eth_signer.public_key,
+        }) 
+
+        signed_tx = eth_signer.sign_transaction(tx)
+        tx_hash = self.w3.eth.send_raw_transaction(signed_tx.rawTransaction) 
+        return tx_hash
+
+    def call_approve(self, approved_address, token_id: int, eth_signer: EthSigner) -> str:
+        tx = self.contract.functions.approve(
+            Web3.toChecksumAddress(approved_address),
+            token_id,
+        ).buildTransaction({
+            "nonce": Eth(self.w3).getTransactionCount(eth_signer.public_key),
+            "from": eth_signer.public_key,
+        }) 
+
+        signed_tx = eth_signer.sign_transaction(tx)
+        tx_hash = self.w3.eth.send_raw_transaction(signed_tx.rawTransaction) 
+        return tx_hash
+
 class EthBridge(ContractWrapper):
     def __init__(self, 
-        contract_address: str = "0xFE37dd9D3528737f55D1bd8137F4ca67CDcf61fA", 
-        contract_path: str = os.path.join('eth_components', 'contracts', 'main.vy')
+        contract_address: str, 
+        contract_path: str = os.path.join('eth_components', 'contracts', 'bridge.vy')
     ):
         super().__init__(contract_address, contract_path)
 
@@ -49,22 +90,30 @@ class EthBridge(ContractWrapper):
             token_id, 
             True
         ).call().hex()
+
+    def get_unmigrate_sign_hash(self, target_owner: str, nft_contract_address: str, token_id: int) -> str:
+        return "0x" + self.contract.functions.get_unmigrate_sign_hash(
+            Web3.toChecksumAddress(target_owner),
+            Web3.toChecksumAddress(nft_contract_address),
+            token_id
+        ).call().hex()
     
     def subscribe_to_orders(self, *args):
         for event in self.contract.events.Order.getLogs():
             self.get_order_metadata(event, *args)
             
-    def get_order_metadata(self, *args: list[Callable]):
+    def get_order_metadata(self):
+        orders = []
         for event in self.contract.events.Order.getLogs():
-            order = {
-                "metadata":{
+            orders.append({
+                "metadata_eth":{
                     "token_id": event.args.token_id,
                     "token_address": event.args.token_address,
                     "requester_address": event.args.requester_address,
-                    "target_address": event.args.target_address.decode('utf-8')
+                    "target_address": event.args.target_address
                 }
-            }
-            [f(order) for f in args]
+            })
+        return orders
 
     def call_order_migration(self, nft_contract_address: str, token_id: int, target_account: str, eth_signer: EthSigner) -> str:
         tx = self.contract.functions.order_migration(
@@ -96,7 +145,7 @@ class EthBridge(ContractWrapper):
         return tx_hash
 
     def call_unmigrate_token(self, target_owner: str, nft_contract_address: str, token_id: int, signatures: str, eth_signer: EthSigner) -> str:
-        tx = self.contract.functions.execute_migration(
+        tx = self.contract.functions.unmigrate_token(
             Web3.toChecksumAddress(target_owner),
             Web3.toChecksumAddress(nft_contract_address),
             token_id,

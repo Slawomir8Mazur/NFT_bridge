@@ -514,7 +514,7 @@ class FA2_pause(FA2_core):
 class FA2_change_metadata(FA2_core):
     @sp.entry_point
     def set_metadata(self, k, v):
-        sp.verify(self.is_administrator(sp.sender), message = self.error_message.not_admin())
+        # sp.verify(self.is_administrator(sp.sender), message = self.error_message.not_admin()) # TODO: uncomment that after development
         self.data.metadata[k] = v
 
 class FA2_mint(FA2_core):
@@ -802,17 +802,6 @@ class MultiSigMintery(sp.Contract):
             "mint"
         ).open_some()
         sp.transfer(params.mint_params, sp.tez(0), contract)
-
-    @sp.entry_point
-    def update_signers(self, params):
-        # TODO remove that endpoint after the tests
-        self.data.pks = params.pks
-
-    # @sp.entry_point
-    # def add_contract(self, params):
-    #     self.verify_signatures(params.signatures_paramteres)
-    #     self.data.contracts[params.eth_token_address] = params.tez_token_address
-
 
     def verify_signatures(self, params):
         counter = sp.local('counter', 0)
