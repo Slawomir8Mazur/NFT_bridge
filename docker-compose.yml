@@ -1,0 +1,62 @@
+version: "3.9"
+networks:
+  vpcbr:
+    ipam:
+      config:
+        - subnet: 172.1.0.0/24
+services:
+  validator0:
+    image: "validators:latest"
+    environment:
+      INFURA_URI: "https://ropsten.infura.io/v3/PUT_SECRET_HERE"
+      ETHEREUM_PRIVATE_KEY: "78d0030cb696f47a55b378505b8c3054b3f064054a2d0c7531771f71d008b2ca"
+      TEZOS_PRIVATE_KEY: "edskS4HqTEKwwRmpWb3QRdFLR9txMwFYbqdwAUL8ToiM9ZMPkK43uAVN7f4x83798vZD8jgmtFFikALcEmCV9j86Ac93qWZ9PV"
+    ports:
+      - "8000:80"
+    networks:
+      vpcbr:
+        ipv4_address:  "172.1.0.6"
+  validator1:
+    image: "validators:latest"
+    environment:
+      INFURA_URI: "https://ropsten.infura.io/v3/PUT_SECRET_HERE"
+      ETHEREUM_PRIVATE_KEY: "966df0518f035893a93a4d2660a2425fcfd718748c2380c80269864719f76582"
+      TEZOS_PRIVATE_KEY: "edskRtj4KXgV86r1gPGy5oqTvo11njxfuJ3p2QeCdsstEQQx1zmj9GimdJMQxHRcvehbqK3BeggMm5ouhjffRaH4kyPUsS8gKK"
+    ports:
+      - "8001:80"
+    networks:
+      vpcbr:
+        ipv4_address:  "172.1.0.2"
+  validator2:
+    image: "validators:latest"
+    environment:
+      INFURA_URI: "https://ropsten.infura.io/v3/PUT_SECRET_HERE"
+      ETHEREUM_PRIVATE_KEY: "3851bafb709fd60f53a5ea4ea13264e25e1f193946b79dd9186fda5afb06e9af"
+      TEZOS_PRIVATE_KEY: "edskReDSR3VWRLYisUqoquhJoBiBezYJwnNx1AHBcfYxhrEFAQj3vHyLUo6j7maagLJuHYHXN8tQKVsaXMw6szWTZf1wmuYcLa"
+    ports:
+      - "8002:80"
+    networks:
+      vpcbr:
+        ipv4_address:  "172.1.0.3"
+  validator3:
+    image: "validators:latest"
+    environment:
+      INFURA_URI: "https://ropsten.infura.io/v3/PUT_SECRET_HERE"
+      ETHEREUM_PRIVATE_KEY: "d73cb3c0a4c8e2f5394199cad1b66d80d55a94aee8052af7d0b469c0eece2093"
+      TEZOS_PRIVATE_KEY: "edskS6VFJPRY19v7K79sgzZRdz4Xdy9iUSxYyR2ZNptVdB5MZeoAojNgDZf6SdF8xjUytT996E1vhWdbGa9ZYoW1NZprjbUsYC"
+    ports:
+      - "8003:80"
+    networks:
+      vpcbr:
+        ipv4_address:  "172.1.0.4"
+  validator4:
+    image: "validators:latest"
+    environment:
+      INFURA_URI: "https://ropsten.infura.io/v3/PUT_SECRET_HERE"
+      ETHEREUM_PRIVATE_KEY: "ed7afff59262c129eebbab0179fa4361155de2dad9c7a2667b58400233b8e08b"
+      TEZOS_PRIVATE_KEY: "edskRokCZnNwPYBhZz8w42qKYuavuJKAvUzuHGqxQ9b9LZ5ixrpMKkEqXxETVaC3ZoT2Jpd6RAyQDRLFQ9qF3ZyrZHt53zRnue"
+    ports:
+      - "8004:80"
+    networks:
+      vpcbr:
+        ipv4_address:  "172.1.0.5"
