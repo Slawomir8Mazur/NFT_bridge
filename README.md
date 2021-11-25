@@ -10,15 +10,55 @@ Project is meant to have following items:
     * is a factory for FA2 contracts for tokens that should be minted on Tezos blockchain, having ERC721 as collateral - those FA2 contracts should mirror their ethereum's counterparts
     * validates some actions with multisig
 2. Ethereum smart-contract that mirror it's Tezos counterpart
-3. Network of validators - initially there will be 5 validators, from which 3 whould need to agree on mining token on the other chain or burning them
+3. Network of validators - initially there will be 5 validators, from which 3 would need to agree on minting token on the other chain or burning them
 
 ### Future view
 
 Proposed implementation assumes there are validators - programs that comunicates with each other where majority of them can confirm taking action. Current implementation requires that majority of them is honest, for transactions on both chains there, validators crate pair of signatures to authorize their actions.
 
-In future implementation I'd like to update approach to signatures, so that every process is signed only once. In that case when validators would confirm with their signature deposit on one chain, user could take that signature and claim token on the other chain. That concept requires some fine-graining, but would give even smaller edge for any mischief. 
+In future implementation I'd like to update approach to signatures, so that every process is signed only once. In that case when validators would confirm with their signature deposit on one chain, user could take that signature and claim token on the other chain. That concept requires some fine-graining, but would give even smaller edge for any mischief.
+
+
+# Run
+
+### Backend
+
+Requirements:
+
+`Docker`
+
+**Run**
+
+In file docker-compose.yml replace all *PUT_SECRET_HERE* with infura ethereum project id (more info in [infura documentation](https://infura.io/docs/ethereum#section/Securing-Your-Credentials) and at [infura website](https://infura.io/dashboard/ethereum))
+
+```bash
+docker build -t validators .
+docker-compose up
+```
+
+### Frontend
+
+Requirements:
+
+`Node v16.13.0`
+
+`Yarn v1.22.15`
+
+**Run**
+
+```bash
+cd website
+yarn install
+yarn start
+```
+
+## Build contracts
 
 ### Ethereum part
+
+Requirements:
+* python 3.9
+* `vyper` python package
 
 * Build with
 ```bash
@@ -34,32 +74,23 @@ vyper -f abi .\eth_components\contracts\main.vy > .\eth_components\builds\abi.tx
 * Build by copy-pasting the code at https://smartpy.io/ide 
 * Deploy through smartpy.io UI or tezos-client
 
-### Validators
-
-Build and run with
-```bash
-docker build -t validators . && docker run -p 8000:80 -e "INFURA_URI=https://ropsten.infura.io/v3/PROJECT_SECRET_KEY" -e ETHEREUM_PRIVATE_KEY=78d003... -e TEZOS_PRIVATE_KEY=edsk3n... validators:latest
-```
-
-# Development phase
-
-### General overview
-
-For now it will be one side bridge - allows to migrate ERC721 to Tezos and back again. I will not work yet the other way - FA2 tokens will not be minted on Ethereum blockchain.
-
 ### Components status
 
 1. Eth contract
 * Is done, user can order minting
 * If validators won't pick up an order within an hour user can also cancel order and get back token
 2. Validators
-* validators containers works properly as separate instances, but they have troubles with clustering, so it's problem to gather enough signatures to confirm transaction
-* with tools develop for validators one can run all validators in localy, but I target to focus on development here and make it work properly in decentralized envirnoment   
+* validators containers cluster nicely with predefined ip, as it is done currently
+* single minting and unminting process works properly
+* there can be user orders that validators wouldn't be able to fullfill nor remove, in that case validators for now would try to fullfill it periodically, each several seconds
+* In next iterations of this project there should be implemented some mechanizm to remove invalid orders or prevent orders from being/becoming invalid - it would be nice optimisation
 3. Tezos contract
-* I'm finishing development, multisig works, minting and burning are in test phase 
+* Current version works for our usecase
+* Requires some refactoring for: better handling order validation, user withdrawing request of order (helps if validators are idle), more tests, increasing readability for review
+I'm finishing development, multisig works, minting and burning are in test phase 
 4. UI
-* not started, I'm focusing on working backend
-* users can still work through it through CLI tools or MyEtherWallet
+* Works, current version is very basic and allows only token migration and unmigration
+* In future interface could provide actions for situations when validators are idle and visual representation of existing tokens
 
 # Examples
 
