@@ -40,6 +40,10 @@ class Validator:
             self.forge_eth_unmint_message(message)
             self.forge_tez_unmint_message(message)
 
+            # Cache message
+            # if self._cache.get(message["message_tez"]):
+            #     continue
+
             # Sign messages
             self.sign_message_eth(message)
             self.sign_message_tez(message)
@@ -48,9 +52,12 @@ class Validator:
             self.broadcast(message)
 
             # Send to blockchain
-            self.send_unmigrate_token_to_ethereum(message)
-            self.send_unmint_token_to_tezos(message)
-    
+            try:
+                self.send_unmigrate_token_to_ethereum(message)
+                self.send_unmint_token_to_tezos(message)
+            except Exception as e:
+                print(e)
+
 
 
     def handler_order_mint(self):
@@ -69,8 +76,6 @@ class Validator:
             # Cache message
             # if self._cache.get(message["message_eth"]):
             #     continue
-            # else:
-            #     self._cache[message["message_eth"]] = message
 
             # Sign messages
             self.sign_message_eth(message)
@@ -79,9 +84,12 @@ class Validator:
             # Broadcast message to nodes for signing
             self.broadcast(message)
 
+            try:
             # Send to blockchain
-            self.send_mint_token_to_tezos(message)
-            self.send_execute_order_to_ethereum(message)
+                self.send_mint_token_to_tezos(message)
+                self.send_execute_order_to_ethereum(message)
+            except Exception as e:
+                print(e)
 
 
     #################### METADATA TOOLS ############################
