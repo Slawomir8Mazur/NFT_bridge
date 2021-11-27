@@ -20,7 +20,6 @@ class TezSigner:
 
     @staticmethod
     def _call_cmd_square(cmd:str, test=True):
-        print(" ".join(cmd))
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
         resp = process.communicate()[0]
         if test:
