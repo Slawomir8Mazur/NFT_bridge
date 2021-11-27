@@ -17,7 +17,8 @@ RUN pip3 install -r requirements.txt
 ENV PATH "$PATH:/app/execs"
 ENV TEZOS_CLIENT_UNSAFE_DISABLE_DISCLAIMER yes
 
-COPY execs .
-COPY validators .
+COPY execs execs
+COPY validators validators
+COPY eth_components eth_components
 
 CMD ["python", "validators/validator.py"]
