@@ -53,8 +53,8 @@ class Validator:
 
             # Send to blockchain
             try:
-                self.send_unmigrate_token_to_ethereum(message)
                 self.send_unmint_token_to_tezos(message)
+                self.send_unmigrate_token_to_ethereum(message)
             except Exception as e:
                 print(e)
 
@@ -86,8 +86,8 @@ class Validator:
 
             try:
             # Send to blockchain
-                self.send_mint_token_to_tezos(message)
                 self.send_execute_order_to_ethereum(message)
+                self.send_mint_token_to_tezos(message)
             except Exception as e:
                 print(e)
 
@@ -262,7 +262,7 @@ if __name__ == '__main__':
     scheduler.add_job(
         func=validator.handler_order_unmmint, 
         trigger="interval", 
-        seconds=30,
+        seconds=60,
         max_instances=4
     )
     scheduler.start()
@@ -270,7 +270,7 @@ if __name__ == '__main__':
     scheduler.add_job(
         func=validator.handler_order_mint, 
         trigger="interval", 
-        seconds=10,
+        seconds=7,
         max_instances=4
     )
     scheduler.start()
